@@ -15,6 +15,8 @@ app.set('view engine', 'html');
 app.engine('html', require('ejs').renderFile);
 app.set('views', path.join(__dirname, 'views'));
 
+const PORT = 3000;
+
 // open ai key by mr daddy
 
 
@@ -63,4 +65,7 @@ app.get('/', (req, res) => {
       res.status(500).send('AI request failed');
     }
   });
-  
+
+  app.listen(PORT, () => {
+    console.log('Server running at http://localhost:3000');
+  });

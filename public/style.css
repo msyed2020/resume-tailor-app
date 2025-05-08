@@ -1,0 +1,16 @@
+body {
+    font-family: sans-serif;
+    padding: 40px;
+    background: #f9f9f9;
+  }
+  textarea {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  button {
+    padding: 10px 20px;
+    background-color: #0055ff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }

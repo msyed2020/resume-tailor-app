@@ -19,6 +19,8 @@ app.set('views', path.join(__dirname, 'views'));
 const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
+// make sure the api key is set
+
 if (!OPENROUTER_API_KEY) {
   console.error('Error: OPENROUTER_API_KEY environment variable is not set');
   process.exit(1);

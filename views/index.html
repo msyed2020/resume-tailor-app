@@ -1,17 +1,81 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Resume Tailor</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Resume Tailor - AI-Powered Resume Optimization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
-  <h1>Tailor Your Resume</h1>
-  <form action="/generate" method="POST">
-    <label>Paste Resume:</label><br>
-    <textarea name="resume" rows="15" cols="80" required></textarea><br>
-    <label>Paste Job Description:</label><br>
-    <textarea name="job" rows="15" cols="80" required></textarea><br>
-    <button type="submit">Generate Tailored Resume</button>
-  </form>
+<body class="bg-gray-50 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Resume Tailor</h1>
+      <p class="text-gray-600">AI-powered resume optimization for your dream job</p>
+    </header>
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <form action="/generate" method="POST" id="resumeForm" class="space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Your Resume
+            <span class="text-xs text-gray-500 ml-2">(Paste your current resume here)</span>
+          </label>
+          <textarea 
+            name="resume" 
+            rows="12" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            required
+            placeholder="Paste your resume here..."></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Job Description
+            <span class="text-xs text-gray-500 ml-2">(Paste the job description you're applying for)</span>
+          </label>
+          <textarea 
+            name="job" 
+            rows="12" 
+            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            required
+            placeholder="Paste the job description here..."></textarea>
+        </div>
+
+        <div class="flex justify-center">
+          <button 
+            type="submit" 
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-magic mr-2"></i>
+            Generate Tailored Resume
+          </button>
+        </div>
+      </form>
+
+      <div id="loading" class="hidden mt-6 text-center">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+        <p class="mt-2 text-gray-600">Optimizing your resume...</p>
+      </div>
+
+      <div id="error" class="hidden mt-6 p-4 bg-red-50 text-red-700 rounded-md">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <span id="errorMessage"></span>
+      </div>
+    </div>
+
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+      <p>Powered by AI to help you land your dream job</p>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('resumeForm').addEventListener('submit', function(e) {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const submitButton = this.querySelector('button[type="submit"]');
+      
+      loading.classList.remove('hidden');
+      error.classList.add('hidden');
+      submitButton.disabled = true;
+    });
+  </script>
 </body>
 </html>

@@ -20,7 +20,6 @@ const PORT = process.env.PORT || 3000;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 // make sure the api key is set
-
 if (!OPENROUTER_API_KEY) {
   console.error('Error: OPENROUTER_API_KEY environment variable is not set');
   process.exit(1);
@@ -52,14 +51,22 @@ Return the improved resume in professional formatting (bullet points, spacing, e
 
   try {
     const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-      model: 'mistral/mistral-7b-instruct',
+      model: 'mistralai/mistral-7b-instruct:free',
       messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000
     }, {
       headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000', // Required by OpenRouter
+        'X-Title': 'Resume Tailor App' // Optional but recommended
       }
     });
+
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error('Invalid response from AI service');
+    }
 
     const tailored = response.data.choices[0].message.content;
     const html = `
@@ -80,33 +87,37 @@ Return the improved resume in professional formatting (bullet points, spacing, e
 
     const pdfPath = path.join(__dirname, 'public', 'resume.pdf');
     
-    pdf.create(html, {
-      format: 'Letter',
-      border: {
-        top: '1in',
-        right: '1in',
-        bottom: '1in',
-        left: '1in'
-      }
-    }).toFile(pdfPath, (err) => {
+    pdf.create(html).toStream((err, stream) => {
       if (err) {
-        console.error('PDF generation error:', err);
-        return res.status(500).json({ error: 'Error creating PDF' });
+        return res.status(500).send('Failed to generate PDF');
       }
-      res.json({ success: true, pdfUrl: '/resume.pdf' });
+    
+      res.setHeader('Content-disposition', 'attachment; filename=tailored_resume.pdf');
+      res.setHeader('Content-type', 'application/pdf');
+      stream.pipe(res);
     });
-
+    
   } catch (error) {
     console.error('AI request error:', error.response?.data || error.message);
-    res.status(500).json({ 
-      error: 'Failed to generate tailored resume. Please try again later.' 
-    });
+    let errorMessage = 'Failed to generate tailored resume. ';
+    
+    if (error.response?.data?.error) {
+      errorMessage += error.response.data.error;
+    } else if (error.response?.status === 401) {
+      errorMessage += 'Authentication failed. Please check your API key.';
+    } else if (error.response?.status === 429) {
+      errorMessage += 'Rate limit exceeded. Please try again later.';
+    } else {
+      errorMessage += 'Please try again later.';
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Server error:', err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 

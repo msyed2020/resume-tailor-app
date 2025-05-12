@@ -59,8 +59,8 @@ Return the improved resume in professional formatting (bullet points, spacing, e
       headers: {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000', // Required by OpenRouter
-        'X-Title': 'Resume Tailor App' // Optional but recommended
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'Resume Tailor App'
       }
     });
 
@@ -85,8 +85,7 @@ Return the improved resume in professional formatting (bullet points, spacing, e
       </html>
     `;
 
-    const pdfPath = path.join(__dirname, 'public', 'resume.pdf');
-    
+    // Generate PDF and stream directly to user
     pdf.create(html, {
       format: 'Letter',
       border: {
@@ -95,12 +94,18 @@ Return the improved resume in professional formatting (bullet points, spacing, e
         bottom: '1in',
         left: '1in'
       }
-    }).toFile(pdfPath, (err) => {
+    }).toStream((err, stream) => {
       if (err) {
         console.error('PDF generation error:', err);
         return res.status(500).json({ error: 'Error creating PDF' });
       }
-      res.json({ success: true, pdfUrl: '/resume.pdf' });
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=tailored-resume.pdf');
+      
+      // Pipe the PDF stream directly to the response
+      stream.pipe(res);
     });
 
   } catch (error) {

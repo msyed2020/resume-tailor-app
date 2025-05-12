@@ -5,9 +5,26 @@ const express = require('express');
 const pdf = require('html-pdf');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
 require('dotenv').config();
 
 const app = express();
+
+// Configure multer for PDF upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -30,10 +47,32 @@ app.get('/', (req, res) => {
   res.render('index');
 });
 
-app.post('/generate', async (req, res) => {
-  const { resume, job } = req.body;
+// Helper function to extract text from PDF
+async function extractTextFromPDF(pdfBuffer) {
+  try {
+    const data = await pdfParse(pdfBuffer);
+    return data.text;
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    throw new Error('Failed to parse PDF file');
+  }
+}
 
-  if (!resume || !job) {
+app.post('/generate', upload.single('resumeFile'), async (req, res) => {
+  let resumeText = req.body.resume;
+
+  // If a PDF file was uploaded, extract text from it
+  if (req.file) {
+    try {
+      resumeText = await extractTextFromPDF(req.file.buffer);
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  }
+
+  const { job } = req.body;
+
+  if (!resumeText || !job) {
     return res.status(400).json({ error: 'Both resume and job description are required' });
   }
 
@@ -41,7 +80,7 @@ app.post('/generate', async (req, res) => {
 You are an expert resume writer. Please modify the following resume to better fit the job description using relevant keywords and experiences.
 
 Resume:
-${resume}
+${resumeText}
 
 Job Description:
 ${job}
@@ -129,6 +168,12 @@ Return the improved resume in professional formatting (bullet points, spacing, e
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err.stack);
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File size too large. Maximum size is 5MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
   res.status(500).json({ error: 'Something went wrong!' });
 });
 

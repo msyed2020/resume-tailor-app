@@ -87,16 +87,22 @@ Return the improved resume in professional formatting (bullet points, spacing, e
 
     const pdfPath = path.join(__dirname, 'public', 'resume.pdf');
     
-    pdf.create(html).toStream((err, stream) => {
-      if (err) {
-        return res.status(500).send('Failed to generate PDF');
+    pdf.create(html, {
+      format: 'Letter',
+      border: {
+        top: '1in',
+        right: '1in',
+        bottom: '1in',
+        left: '1in'
       }
-    
-      res.setHeader('Content-disposition', 'attachment; filename=tailored_resume.pdf');
-      res.setHeader('Content-type', 'application/pdf');
-      stream.pipe(res);
+    }).toFile(pdfPath, (err) => {
+      if (err) {
+        console.error('PDF generation error:', err);
+        return res.status(500).json({ error: 'Error creating PDF' });
+      }
+      res.json({ success: true, pdfUrl: '/resume.pdf' });
     });
-    
+
   } catch (error) {
     console.error('AI request error:', error.response?.data || error.message);
     let errorMessage = 'Failed to generate tailored resume. ';

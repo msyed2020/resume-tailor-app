@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
@@ -29,6 +30,12 @@ const upload = multer({
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
 app.set('view engine', 'html');
 app.engine('html', require('ejs').renderFile);
 app.set('views', path.join(__dirname, 'views'));
@@ -108,43 +115,16 @@ Return the improved resume in professional formatting (bullet points, spacing, e
     }
 
     const tailored = response.data.choices[0].message.content;
-    const html = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; padding: 2rem; }
-            h1, h2, h3 { color: #2d3748; }
-            ul { margin: 1rem 0; }
-            li { margin: 0.5rem 0; }
-          </style>
-        </head>
-        <body>
-          <pre style="white-space: pre-wrap;">${tailored}</pre>
-        </body>
-      </html>
-    `;
+    
+    // Store the original and tailored resumes in the session
+    req.session = req.session || {};
+    req.session.originalResume = resumeText;
+    req.session.tailoredResume = tailored;
 
-    // Generate PDF and stream directly to user
-    pdf.create(html, {
-      format: 'Letter',
-      border: {
-        top: '1in',
-        right: '1in',
-        bottom: '1in',
-        left: '1in'
-      }
-    }).toStream((err, stream) => {
-      if (err) {
-        console.error('PDF generation error:', err);
-        return res.status(500).json({ error: 'Error creating PDF' });
-      }
-
-      // Set headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=tailored-resume.pdf');
-      
-      // Pipe the PDF stream directly to the response
-      stream.pipe(res);
+    // Return both versions for comparison
+    res.json({
+      original: formatResumeForDisplay(resumeText),
+      tailored: formatResumeForDisplay(tailored)
     });
 
   } catch (error) {
@@ -164,6 +144,58 @@ Return the improved resume in professional formatting (bullet points, spacing, e
     res.status(500).json({ error: errorMessage });
   }
 });
+
+// New endpoint to handle accepting changes and generating final PDF
+app.post('/accept', async (req, res) => {
+  if (!req.session || !req.session.tailoredResume) {
+    return res.status(400).json({ error: 'No tailored resume found. Please generate one first.' });
+  }
+
+  const html = `
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; padding: 2rem; }
+          h1, h2, h3 { color: #2d3748; }
+          ul { margin: 1rem 0; }
+          li { margin: 0.5rem 0; }
+        </style>
+      </head>
+      <body>
+        <pre style="white-space: pre-wrap;">${req.session.tailoredResume}</pre>
+      </body>
+    </html>
+  `;
+
+  // Generate PDF and stream directly to user
+  pdf.create(html, {
+    format: 'Letter',
+    border: {
+      top: '1in',
+      right: '1in',
+      bottom: '1in',
+      left: '1in'
+    }
+  }).toStream((err, stream) => {
+    if (err) {
+      console.error('PDF generation error:', err);
+      return res.status(500).json({ error: 'Error creating PDF' });
+    }
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=tailored-resume.pdf');
+    
+    // Pipe the PDF stream directly to the response
+    stream.pipe(res);
+  });
+});
+
+// Helper function to format resume text for display
+function formatResumeForDisplay(text) {
+  // Convert line breaks to <br> tags
+  return text.replace(/\n/g, '<br>');
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {

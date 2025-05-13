@@ -8,10 +8,13 @@ const fs = require('fs');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const session = require('express-session');
+const serverless = require('serverless-http');
 require('dotenv').config();
 
 const app = express();
 
+module.exports = app;
+module.exports.handler = serverless(app);
 // Configure multer for PDF upload
 const upload = multer({
   storage: multer.memoryStorage(),

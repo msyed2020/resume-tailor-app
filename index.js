@@ -13,8 +13,7 @@ require('dotenv').config();
 
 const app = express();
 
-module.exports = app;
-module.exports.handler = serverless(app);
+module.exports = serverless(app);
 // Configure multer for PDF upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -212,7 +211,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
 // deployment test
